@@ -70,7 +70,7 @@ func main() {
 			} else if strings.HasSuffix(line, "<<") {
 				// end
 				currentMessage = append(currentMessage, line)
-				joinedMessage := strings.Join(currentMessage, "\n") + "\n"
+				joinedMessage := strings.Join(currentMessage, "") + "\n"
 				allText = append([]string{joinedMessage}, allText...)
 				textView.SetText(strings.Join(allText, "\n"))
 				// reset
