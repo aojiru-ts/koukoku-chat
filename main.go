@@ -13,11 +13,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-func removeANSI(input string) string {
-	re := regexp.MustCompile(`\x1b\[[0-9;]*m`)
-	return re.ReplaceAllString(input, "")
-}
-
+var re = regexp.MustCompile("[\u001B\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[a-zA-Z\\d]*)*)?\u0007)|(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PRZcf-ntqry=><~]))")
 var allText []string
 
 func main() {
@@ -66,7 +62,7 @@ func main() {
 		accumulating := false // multi line
 	
 		for scanner.Scan() {
-			line := removeANSI(scanner.Text())
+			line := strings.TrimSpace(re.ReplaceAllString(scanner.Text(), ""))
 			if strings.HasPrefix(line, ">>") {
 				// start
 				accumulating = true
