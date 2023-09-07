@@ -7,10 +7,16 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"regexp"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
+
+func removeANSI(input string) string {
+	re := regexp.MustCompile(`\x1b\[[0-9;]*m`)
+	return re.ReplaceAllString(input, "")
+}
 
 var allText []string
 
@@ -22,6 +28,9 @@ func main() {
 	}
 	defer conn.Close()
 	log.Println("client: connected to: ", conn.RemoteAddr())
+
+	// chat mode
+	fmt.Fprintln(conn, "nobody")
 
 	app := tview.NewApplication()
 	textView := tview.NewTextView().
@@ -53,13 +62,28 @@ func main() {
 	go func() {
 		defer wg.Done()
 		scanner := bufio.NewScanner(conn)
+		var currentMessage []string
+		accumulating := false // multi line
+	
 		for scanner.Scan() {
-			line := scanner.Text()
-			if !strings.HasPrefix(line, ">>") {
-				continue
+			line := removeANSI(scanner.Text())
+			if strings.HasPrefix(line, ">>") {
+				// start
+				accumulating = true
+				currentMessage = append(currentMessage, line)
+			} else if strings.HasSuffix(line, "<<") {
+				// end
+				currentMessage = append(currentMessage, line)
+				joinedMessage := strings.Join(currentMessage, "\n") + "\n"
+				allText = append([]string{joinedMessage}, allText...)
+				textView.SetText(strings.Join(allText, "\n"))
+				// reset
+				accumulating = false
+				currentMessage = nil
+			} else if accumulating {
+				// continue
+				currentMessage = append(currentMessage, line)
 			}
-			allText = append([]string{line}, allText...)
-			textView.SetText(strings.Join(allText, "\n"))
 		}
 	}()
 
